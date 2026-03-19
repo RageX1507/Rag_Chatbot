@@ -135,8 +135,8 @@ with st.sidebar:
         st.session_state.chat_history = []
 
     st.markdown("---")
-    st.write("**Model:** Gemini Flash")
-    st.write("**Mode:** RAG (NEC + Wattmonk)")
+    st.write("**Model:** Llama-3.1-8b")
+    st.write("**Mode:** RAG (NEC + Wattmonk) & General")
 
 # Load system
 @st.cache_resource
