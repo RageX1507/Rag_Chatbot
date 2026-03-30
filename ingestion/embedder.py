@@ -1,8 +1,15 @@
 import warnings
 warnings.filterwarnings("ignore")
+
+from functools import lru_cache
 from langchain_community.embeddings import HuggingFaceEmbeddings
 
+
+@lru_cache(maxsize=1)
 def get_embeddings():
+
+    print("Loading embedding model...")
+
     return HuggingFaceEmbeddings(
         model_name="sentence-transformers/all-MiniLM-L6-v2"
     )
