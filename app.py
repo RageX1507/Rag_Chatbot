@@ -24,21 +24,6 @@ st.markdown("""
 header {visibility: visible;}
 footer {visibility: hidden;}
 
-[data-testid="collapsedControl"] {
-    display: block !important;
-    position: fixed;
-    top: 15px;
-    left: 15px;
-    z-index: 9999;
-    background-color: #262626;
-    padding: 6px 10px;
-    border-radius: 8px;
-}
-
-[data-testid="collapsedControl"] button {
-    color: white !important;
-}
-
 .chat-container {
     max-width: 750px;
     margin: auto;
@@ -72,28 +57,14 @@ footer {visibility: hidden;}
     word-wrap: break-word;
 }
 
-.user-msg:hover, .bot-msg:hover {
-    transform: scale(1.01);
-    transition: 0.2s ease;
-}
-
-.stChatInput {
-    position: fixed;
-    bottom: 20px;
-    width: min(700px, calc(100% - 300px));
-    left: calc(50% + 100px);
-    transform: translateX(-50%);
-}
-
-[data-testid="stSidebar"][aria-expanded="false"] ~ div .stChatInput {
-    width: min(700px, calc(100% - 100px));
-    left: 50%;
-}
-
-div[data-testid="stHorizontalBlock"] button {
-    border-radius: 20px;
-    padding: 6px 14px;
-    font-size: 13px;
+.suggestion-pill {
+    background:#1f2937;
+    padding:8px 14px;
+    border-radius:20px;
+    text-align:center;
+    font-size:13px;
+    border:1px solid #374151;
+    white-space:nowrap;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -222,31 +193,14 @@ for role, message in st.session_state.chat_history:
 
                 for i, s in enumerate(suggestions):
 
-                    if cols[i].button(
-                        s,
-                        key=f"suggestion_{i}_{len(st.session_state.chat_history)}"
-                    ):
-
-                        user_query = s
-
-                        st.session_state.chat_history.append(
-                            ("user", user_query)
-                        )
-
-                        with st.spinner("Thinking... 🤔"):
-
-                            response = handle_query(
-                                user_query,
-                                nec_index,
-                                wattmonk_index,
-                                st.session_state.chat_history
-                            )
-
-                        st.session_state.chat_history.append(
-                            ("bot", response)
-                        )
-
-                        st.rerun()
+                    cols[i].markdown(
+                        f"""
+                        <div class="suggestion-pill">
+                            {s}
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
 
 
 st.markdown("</div>", unsafe_allow_html=True)
