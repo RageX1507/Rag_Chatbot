@@ -89,6 +89,12 @@ footer {visibility: hidden;}
     width: min(700px, calc(100% - 100px));
     left: 50%;
 }
+
+div[data-testid="stHorizontalBlock"] button {
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 13px;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -212,28 +218,35 @@ for role, message in st.session_state.chat_history:
 
             if suggestions:
 
-                st.markdown(
-                    "<div style='margin-left:10px;'>",
-                    unsafe_allow_html=True
-                )
+                cols = st.columns(len(suggestions))
 
                 for i, s in enumerate(suggestions):
 
-                    if st.button(
+                    if cols[i].button(
                         s,
-                        key=f"suggestion_{i}_{s}"
+                        key=f"suggestion_{i}_{len(st.session_state.chat_history)}"
                     ):
 
+                        user_query = s
+
                         st.session_state.chat_history.append(
-                            ("user", s)
+                            ("user", user_query)
+                        )
+
+                        with st.spinner("Thinking... 🤔"):
+
+                            response = handle_query(
+                                user_query,
+                                nec_index,
+                                wattmonk_index,
+                                st.session_state.chat_history
+                            )
+
+                        st.session_state.chat_history.append(
+                            ("bot", response)
                         )
 
                         st.rerun()
-
-                st.markdown(
-                    "</div>",
-                    unsafe_allow_html=True
-                )
 
 
 st.markdown("</div>", unsafe_allow_html=True)
