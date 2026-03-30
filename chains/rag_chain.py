@@ -5,38 +5,54 @@ from router.intent import classify_query
 
 def generate_rag_response(query, docs, source):
 
-    # Build context safely
-    context = "\n\n".join([doc.page_content for doc in docs]) if docs else ""
+    context = "\n\n".join(
+        [doc.page_content for doc in docs]
+    ) if docs else ""
 
-    # Hybrid prompt (RAG + General)
     prompt = f"""
-You are a helpful AI assistant.
+You are a professional technical assistant.
 
-Use the context if relevant.
-Answer confidently and directly.
+Rules:
 
-Do NOT say "based on context".
-Do NOT be overly cautious.
+1) Use provided information when relevant
+2) If information is insufficient, answer using knowledge
+3) Be concise and confident
+4) Never mention the word "context"
+5) Prefer bullet points when helpful
 
-Context:
+Information:
 {context[:1500]}
 
-Question: {query}
+Question:
+{query}
 
 Answer:
 """
 
     response = call_llm(prompt).strip()
 
-    # Fallback (VERY IMPORTANT)
+    # fallback
     if not response or len(response) < 5:
-        response = call_llm(f"Answer clearly: {query}")
 
-    # Confidence
+        response = call_llm(
+            f"Answer clearly and directly: {query}"
+        )
+
+    # confidence calculation
     if docs:
-        scores = [doc.metadata.get("score", 0.5) for doc in docs]
-        confidence = round(min(1.0, sum(scores)/len(scores)), 2)
+
+        scores = [
+            doc.metadata.get("score", 0.5)
+            for doc in docs
+        ]
+
+        confidence = round(
+            min(1.0, sum(scores) / len(scores)),
+            2
+        )
+
     else:
+
         confidence = 0.3
 
     return {
@@ -49,8 +65,8 @@ Answer:
 
 def handle_query(query, nec_index, wattmonk_index):
 
-    # Handle greetings
     if query.lower().strip() in ["hi", "hello", "hey"]:
+
         return {
             "answer": "Hey 👋 How can I help you today?",
             "source": "",
@@ -60,8 +76,14 @@ def handle_query(query, nec_index, wattmonk_index):
 
     intent = classify_query(query)
 
+    print("Detected intent:", intent)
+
     if intent == "general":
-        response = call_llm(f"Answer clearly: {query}")
+
+        response = call_llm(
+            f"Answer clearly and directly: {query}"
+        )
+
         return {
             "answer": response,
             "source": "General Knowledge",
@@ -70,30 +92,65 @@ def handle_query(query, nec_index, wattmonk_index):
         }
 
     elif intent == "nec":
-        docs = retrieve_docs(nec_index, query)
-        return generate_rag_response(query, docs, "NEC")
+
+        docs = retrieve_docs(
+            nec_index,
+            query
+        )
+
+        return generate_rag_response(
+            query,
+            docs,
+            "NEC"
+        )
 
     elif intent == "wattmonk":
-        docs = retrieve_docs(wattmonk_index, query)
-        return generate_rag_response(query, docs, "Wattmonk")
+
+        docs = retrieve_docs(
+            wattmonk_index,
+            query
+        )
+
+        return generate_rag_response(
+            query,
+            docs,
+            "Wattmonk"
+        )
 
     else:
-        response = call_llm(f"Answer clearly: {query}")
+
+        response = call_llm(
+            f"Answer clearly and directly: {query}"
+        )
+
         return {
             "answer": response,
             "source": "General Knowledge",
             "docs": [],
             "confidence": 0.3
         }
+
+
 def generate_suggestions(query):
+
     prompt = f"""
 Generate 3 short follow-up questions for:
+
 {query}
 """
 
     try:
+
         output = call_llm(prompt)
-        suggestions = [q.strip("- ").strip() for q in output.split("\n") if q.strip()]
+
+        suggestions = [
+            q.strip("- ").strip()
+            for q in output.split("\n")
+            if q.strip()
+        ]
+
         return suggestions[:3]
-    except:
+
+    except Exception:
+
         return []
