@@ -1,257 +1,248 @@
-from retriever.retriever import retrieve_docs
-from llm.groq import call_llm
-from router.intent import classify_query
+import streamlit as st
+import base64
+import time
+
+from main import build_indexes
+from chains.rag_chain import handle_query, generate_suggestions
 
 
-def rewrite_query_with_history(query, history):
-
-    try:
-
-        if not history:
-            return query
-
-        user_messages = [
-            msg for role, msg in history
-            if role == "user"
-        ]
-
-        if len(user_messages) < 2:
-            return query
-
-        previous_question = user_messages[-2]
-
-        short_query_words = [
-            "its",
-            "it",
-            "this",
-            "that",
-            "they",
-            "those",
-            "these",
-            "guidelines",
-            "requirements",
-            "rules",
-            "details"
-        ]
-
-        needs_rewrite = (
-            len(query.split()) <= 5
-            or query.lower() in short_query_words
-        )
-
-        if not needs_rewrite:
-            return query
-
-        prompt = f"""
-Rewrite the follow-up question into a complete standalone question.
-
-Previous question:
-{previous_question}
-
-Current question:
-{query}
-
-Resolve references like:
-
-its
-it
-this
-that
-they
-those
-guidelines
-requirements
-rules
-
-Example:
-
-Previous: What is NEC?
-Current: its guidelines
-Rewrite: What are the NEC guidelines?
-
-Return ONLY the rewritten question.
-"""
-
-        rewritten = call_llm(prompt).strip()
-
-        if rewritten:
-
-            print("Previous:", previous_question)
-            print("Original:", query)
-            print("Rewritten:", rewritten)
-
-            return rewritten
-
-    except Exception as e:
-
-        print("Rewrite error:", e)
-
-    return query
+st.set_page_config(
+    page_title="Wattmonk AI",
+    page_icon="assets/wattmonk.png",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
 
-def generate_rag_response(query, docs, source):
+st.markdown("""
+<style>
 
-    context = "\n\n".join(
-        [doc.page_content for doc in docs]
-    ) if docs else ""
+/* Chat container */
 
-    prompt = f"""
-You are a professional technical assistant.
+.chat-container {
+    max-width: 750px;
+    margin: auto;
+    padding: 10px;
+}
 
-Use provided information when relevant.
-If information is insufficient, answer using knowledge.
-Be concise and confident.
+/* User message */
 
-Information:
-{context[:1500]}
+.user-msg {
+    background-color: #2f80ed;
+    color: white;
+    padding: 10px 14px;
+    border-radius: 12px;
+    margin: 8px 0;
+    max-width: 60%;
+    margin-left: auto;
+    margin-right: 10px;
+    text-align: right;
+    word-wrap: break-word;
+}
 
-Question:
-{query}
+/* Bot message — theme adaptive */
 
-Answer:
-"""
+.bot-msg {
+    background-color: var(--secondary-background-color);
+    color: var(--text-color);
+    padding: 10px 14px;
+    border-radius: 12px;
+    margin: 8px 0;
+    max-width: 65%;
+    margin-left: 10px;
+    margin-right: auto;
+    text-align: left;
+    border: 1px solid var(--border-color);
+    word-wrap: break-word;
+}
 
-    response = call_llm(prompt).strip()
+/* Suggestion pills — adaptive */
 
-    if not response or len(response) < 5:
+.suggestion-pill {
+    background-color: var(--secondary-background-color);
+    color: var(--text-color);
+    padding: 8px 14px;
+    border-radius: 20px;
+    text-align: center;
+    font-size: 13px;
+    border: 1px solid var(--border-color);
+    white-space: nowrap;
+}
 
-        response = call_llm(
-            f"Answer clearly and directly: {query}"
-        )
+/* Title */
 
-    if docs:
+.chat-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-color);
+}
 
-        scores = [
-            doc.metadata.get("score", 0.5)
-            for doc in docs
-        ]
+/* Hover */
 
-        confidence = round(
-            min(1.0, sum(scores) / len(scores)),
-            2
-        )
+.user-msg:hover,
+.bot-msg:hover {
+    transform: scale(1.01);
+    transition: 0.2s ease;
+}
 
-    else:
-
-        confidence = 0.3
-
-    return {
-        "answer": response,
-        "source": source if docs else "General Knowledge",
-        "docs": docs,
-        "confidence": confidence
-    }
+</style>
+""", unsafe_allow_html=True)
 
 
-def handle_query(
-    query,
-    nec_index,
-    wattmonk_index,
-    chat_history=None
-):
+def get_base64_image(path):
+    with open(path, "rb") as f:
+        return base64.b64encode(f.read()).decode()
 
-    if query.lower().strip() in ["hi", "hello", "hey"]:
 
-        return {
-            "answer": "Hey 👋 How can I help you today?",
-            "source": "",
-            "docs": [],
-            "confidence": 1.0
-        }
+img_base64 = get_base64_image("assets/wattmonk.png")
 
-    rewritten_query = rewrite_query_with_history(
-        query,
-        chat_history
-    )
 
-    print("Final Query Used:", rewritten_query)
+st.markdown(f"""
+<div style="text-align:center; margin-top:30px; margin-bottom:20px;">
 
-    intent = classify_query(rewritten_query)
+<img src="data:image/png;base64,{img_base64}"
+width="160"
+style="
+display:block;
+margin:auto;
+padding-top:10px;
+filter: drop-shadow(0px 0px 6px rgba(0,0,0,0.3));
+"/>
 
-    print("Detected intent:", intent)
+<div class="chat-title">
+Chatbot
+</div>
 
-    if intent == "general":
+</div>
+""", unsafe_allow_html=True)
 
-        response = call_llm(
-            f"Answer clearly and directly: {rewritten_query}"
-        )
 
-        return {
-            "answer": response,
-            "source": "General Knowledge",
-            "docs": [],
-            "confidence": 0.4
-        }
+with st.sidebar:
 
-    elif intent == "nec":
+    st.title("⚙️ Controls")
 
-        docs = retrieve_docs(
+    if st.button("🗑️ Clear Chat"):
+        st.session_state.chat_history = []
+
+    st.markdown("---")
+    st.write("**Model:** Llama-3.1-8b")
+    st.write("**Mode:** RAG (NEC + Wattmonk) & General")
+
+
+@st.cache_resource
+def load_system():
+    return build_indexes()
+
+
+nec_index, wattmonk_index = load_system()
+
+
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
+
+query = st.chat_input("Ask me anything...")
+
+
+if query:
+
+    st.session_state.chat_history.append(("user", query))
+
+    with st.spinner("Thinking... 🤔"):
+
+        response = handle_query(
+            query,
             nec_index,
-            rewritten_query
-        )
-
-        return generate_rag_response(
-            rewritten_query,
-            docs,
-            "NEC"
-        )
-
-    elif intent == "wattmonk":
-
-        docs = retrieve_docs(
             wattmonk_index,
-            rewritten_query
+            st.session_state.chat_history
         )
 
-        return generate_rag_response(
-            rewritten_query,
-            docs,
-            "Wattmonk"
+    st.session_state.chat_history.append(("bot", response))
+
+
+st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
+
+
+for role, message in st.session_state.chat_history:
+
+    if role == "user":
+
+        st.markdown(
+            f"<div class='user-msg'>{message}</div>",
+            unsafe_allow_html=True
         )
 
     else:
 
-        response = call_llm(
-            f"Answer clearly and directly: {rewritten_query}"
+        answer = message["answer"]
+        source = message["source"]
+        confidence = message["confidence"]
+        docs = message["docs"]
+
+        st.markdown(
+            f"<div class='bot-msg'>{answer}</div>",
+            unsafe_allow_html=True
         )
 
-        return {
-            "answer": response,
-            "source": "General Knowledge",
-            "docs": [],
-            "confidence": 0.3
-        }
+        if source and source != "General Knowledge":
+
+            st.markdown(
+                f"""
+                <div style="font-size:12px;color:var(--text-color);margin-left:10px;">
+                Source: {source} | Confidence: {confidence}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        if docs:
+
+            with st.expander("📄 View Sources"):
+
+                for i, doc in enumerate(docs):
+
+                    st.markdown(f"**Chunk {i+1}:**")
+
+                    st.write(
+                        doc.page_content[:300] + "..."
+                    )
+
+        if answer:
+
+            suggestions = generate_suggestions(answer)
+
+            if suggestions:
+
+                cols = st.columns(len(suggestions))
+
+                for i, s in enumerate(suggestions):
+
+                    cols[i].markdown(
+                        f"""
+                        <div class="suggestion-pill">
+                            {s}
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
 
 
-def generate_suggestions(query):
+st.markdown("</div>", unsafe_allow_html=True)
 
-    prompt = f"""
-Generate exactly 3 short follow-up questions.
 
-Rules:
+def stream_text(text, speed=0.01):
 
-- Relevant
-- Under 10 words
-- No numbering
-- No explanation
+    placeholder = st.empty()
 
-Topic:
+    output = ""
 
-{query}
-"""
+    for char in text:
 
-    try:
+        output += char
 
-        output = call_llm(prompt)
+        placeholder.markdown(
+            f"<div class='bot-msg'>{output}</div>",
+            unsafe_allow_html=True
+        )
 
-        suggestions = [
-            q.strip("- ").strip()
-            for q in output.split("\n")
-            if q.strip()
-        ]
-
-        return suggestions[:3]
-
-    except Exception:
-
-        return []
+        time.sleep(speed)
