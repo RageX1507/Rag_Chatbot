@@ -3,6 +3,51 @@ from llm.groq import call_llm
 from router.intent import classify_query
 
 
+def rewrite_query_with_history(query, history):
+
+    if not history:
+        return query
+
+
+    recent_history = history[-2:]
+
+    history_text = "\n".join(
+        [
+            f"{role}: {msg}"
+            for role, msg in recent_history
+            if role == "user"
+        ]
+    )
+
+    prompt = f"""
+You are an assistant that rewrites follow-up questions.
+
+Conversation:
+{history_text}
+
+Current Question:
+{query}
+
+Rewrite the question so it is fully self-contained.
+
+Only return the rewritten question.
+Do not explain.
+"""
+
+    try:
+
+        rewritten = call_llm(prompt)
+
+        if rewritten:
+            print("Rewritten Query:", rewritten)
+            return rewritten
+
+    except Exception:
+        pass
+
+    return query
+
+
 def generate_rag_response(query, docs, source):
 
     context = "\n\n".join(
@@ -31,14 +76,14 @@ Answer:
 
     response = call_llm(prompt).strip()
 
-    # fallback
+    
     if not response or len(response) < 5:
 
         response = call_llm(
             f"Answer clearly and directly: {query}"
         )
 
-    # confidence calculation
+
     if docs:
 
         scores = [
@@ -63,8 +108,15 @@ Answer:
     }
 
 
-def handle_query(query, nec_index, wattmonk_index):
 
+def handle_query(
+    query,
+    nec_index,
+    wattmonk_index,
+    chat_history=None
+):
+
+    
     if query.lower().strip() in ["hi", "hello", "hey"]:
 
         return {
@@ -74,14 +126,23 @@ def handle_query(query, nec_index, wattmonk_index):
             "confidence": 1.0
         }
 
-    intent = classify_query(query)
+
+
+    rewritten_query = rewrite_query_with_history(
+        query,
+        chat_history
+    )
+
+    intent = classify_query(rewritten_query)
 
     print("Detected intent:", intent)
+
+    
 
     if intent == "general":
 
         response = call_llm(
-            f"Answer clearly and directly: {query}"
+            f"Answer clearly and directly: {rewritten_query}"
         )
 
         return {
@@ -91,28 +152,30 @@ def handle_query(query, nec_index, wattmonk_index):
             "confidence": 0.4
         }
 
+
     elif intent == "nec":
 
         docs = retrieve_docs(
             nec_index,
-            query
+            rewritten_query
         )
 
         return generate_rag_response(
-            query,
+            rewritten_query,
             docs,
             "NEC"
         )
+
 
     elif intent == "wattmonk":
 
         docs = retrieve_docs(
             wattmonk_index,
-            query
+            rewritten_query
         )
 
         return generate_rag_response(
-            query,
+            rewritten_query,
             docs,
             "Wattmonk"
         )
@@ -120,7 +183,7 @@ def handle_query(query, nec_index, wattmonk_index):
     else:
 
         response = call_llm(
-            f"Answer clearly and directly: {query}"
+            f"Answer clearly and directly: {rewritten_query}"
         )
 
         return {
