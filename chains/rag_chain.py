@@ -15,27 +15,43 @@ def rewrite_query_with_history(query, history):
             if role == "user"
         ]
 
-        if len(user_messages) < 1:
+        if len(user_messages) < 2:
             return query
 
-        previous_question = user_messages[-1]
+        previous_question = user_messages[-2]
 
-        if len(query.split()) > 6:
+        short_query_words = [
+            "its",
+            "it",
+            "this",
+            "that",
+            "they",
+            "those",
+            "these",
+            "guidelines",
+            "requirements",
+            "rules",
+            "details"
+        ]
+
+        needs_rewrite = (
+            len(query.split()) <= 5
+            or query.lower() in short_query_words
+        )
+
+        if not needs_rewrite:
             return query
 
         prompt = f"""
-You rewrite follow-up questions into complete questions.
+Rewrite the follow-up question into a complete standalone question.
 
-Previous user question:
+Previous question:
 {previous_question}
 
-Current user question:
+Current question:
 {query}
 
-If the current question depends on the previous one,
-rewrite it into a fully self-contained question.
-
-Resolve pronouns like:
+Resolve references like:
 
 its
 it
@@ -43,30 +59,26 @@ this
 that
 they
 those
+guidelines
+requirements
+rules
 
-Examples:
+Example:
 
 Previous: What is NEC?
-Current: Its guidelines?
+Current: its guidelines
 Rewrite: What are the NEC guidelines?
 
-Previous: Tell me about solar permits
-Current: Required documents?
-Rewrite: What documents are required for solar permits?
-
-If no rewrite is needed,
-return the original question.
-
 Return ONLY the rewritten question.
-Do not explain.
 """
 
         rewritten = call_llm(prompt).strip()
 
         if rewritten:
 
-            print("Original Query:", query)
-            print("Rewritten Query:", rewritten)
+            print("Previous:", previous_question)
+            print("Original:", query)
+            print("Rewritten:", rewritten)
 
             return rewritten
 
@@ -86,13 +98,9 @@ def generate_rag_response(query, docs, source):
     prompt = f"""
 You are a professional technical assistant.
 
-Rules:
-
-1) Use provided information when relevant
-2) If information is insufficient, answer using knowledge
-3) Be concise and confident
-4) Never mention the word "context"
-5) Prefer bullet points when helpful
+Use provided information when relevant.
+If information is insufficient, answer using knowledge.
+Be concise and confident.
 
 Information:
 {context[:1500]}
@@ -244,8 +252,6 @@ Topic:
 
         return suggestions[:3]
 
-    except Exception as e:
-
-        print("Suggestion error:", e)
+    except Exception:
 
         return []
