@@ -2,7 +2,7 @@ import streamlit as st
 import base64
 from main import build_indexes
 from chains.rag_chain import handle_query
-
+from chains.rag_chain import generate_suggestions
 # Page config
 st.set_page_config(
     page_title="Wattmonk AI",
@@ -188,7 +188,31 @@ for role, message in st.session_state.chat_history:
                 for i, doc in enumerate(docs):
                     st.markdown(f"**Chunk {i+1}:**")
                     st.write(doc.page_content[:300] + "...")
+# Suggestions
 
+suggestions = generate_suggestions(answer)
+if suggestions:
+
+    st.markdown(
+        "<div style='margin-left:10px;'>",
+        unsafe_allow_html=True
+    )
+
+    for s in suggestions:
+
+        if st.button(
+            s,
+            key=f"suggestion_{s}"
+        ):
+
+            st.session_state.chat_history.append(
+                ("user", s)
+            )
+
+    st.markdown(
+        "</div>",
+        unsafe_allow_html=True
+    )
 st.markdown("</div>", unsafe_allow_html=True)
 import time
 
