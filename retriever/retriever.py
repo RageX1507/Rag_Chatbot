@@ -11,7 +11,7 @@ def retrieve_docs(index, query, k=4):
 
     for doc, score in results:
 
-        # Convert distance → confidence score
+       
         confidence_score = float(1 / (1 + score))
 
         doc.metadata["score"] = confidence_score
