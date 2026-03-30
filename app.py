@@ -156,7 +156,12 @@ if query:
     st.session_state.chat_history.append(("user", query))
 
     with st.spinner("Thinking... 🤔"):
-        response = handle_query(query, nec_index, wattmonk_index)
+        response = handle_query(
+    query,
+    nec_index,
+    wattmonk_index,
+    st.session_state.chat_history
+)
 
     st.session_state.chat_history.append(("bot", response))
 
