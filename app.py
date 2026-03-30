@@ -80,7 +80,12 @@ img_base64 = get_base64_image("assets/wattmonk.png")
 
 
 st.markdown(f"""
-<div class="bot-msg" style="text-align:center; margin-top:20px; margin-bottom:20px;">
+<div class="bot-msg"
+style="
+text-align:center;
+margin: 20px auto;
+max-width: 420px;
+">
 
 <img src="data:image/png;base64,{img_base64}"
 width="160"
@@ -91,7 +96,11 @@ padding-top:10px;
 filter: drop-shadow(0px 0px 6px rgba(0,0,0,0.3));
 "/>
 
-<div style="font-size:20px; margin-top:8px; font-weight:600;">
+<div style="
+font-size:20px;
+margin-top:8px;
+font-weight:600;
+">
 Chatbot
 </div>
 
