@@ -1,8 +1,7 @@
 import streamlit as st
 import base64
 from main import build_indexes
-from chains.rag_chain import handle_query
-from chains.rag_chain import generate_suggestions
+from chains.rag_chain import handle_query, generate_suggestions
 # Page config
 st.set_page_config(
     page_title="Wattmonk AI",
@@ -195,7 +194,7 @@ for role, message in st.session_state.chat_history:
                     st.write(doc.page_content[:300] + "...")
 # Suggestions
 
-suggestions = generate_suggestions(answer)
+suggestions = generate_suggestions(query)
 if suggestions:
 
     st.markdown(
