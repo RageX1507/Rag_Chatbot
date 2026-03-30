@@ -59,6 +59,7 @@ footer {visibility: hidden;}
 
 .suggestion-pill {
     background:#1f2937;
+    color:#ffffff;
     padding:8px 14px;
     border-radius:20px;
     text-align:center;
@@ -79,13 +80,18 @@ img_base64 = get_base64_image("assets/wattmonk.png")
 
 
 st.markdown(f"""
-<div style="text-align:center; margin-top:30px; margin-bottom:20px;">
+<div class="bot-msg" style="text-align:center; margin-top:20px; margin-bottom:20px;">
 
-<img src="data:image/png;base64,{img_base64}" width="160"
-style="display:block; margin:auto; padding-top:10px;
-filter: drop-shadow(0px 0px 8px rgba(255,200,0,0.4));"/>
+<img src="data:image/png;base64,{img_base64}"
+width="160"
+style="
+display:block;
+margin:auto;
+padding-top:10px;
+filter: drop-shadow(0px 0px 6px rgba(0,0,0,0.3));
+"/>
 
-<div style="font-size:20px; color:#eaeaea; margin-top:8px; font-weight:500;">
+<div style="font-size:20px; margin-top:8px; font-weight:600;">
 Chatbot
 </div>
 
