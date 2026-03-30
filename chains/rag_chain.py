@@ -5,45 +5,74 @@ from router.intent import classify_query
 
 def rewrite_query_with_history(query, history):
 
-    if not history:
-        return query
+    try:
 
+        if not history:
+            return query
 
-    recent_history = history[-2:]
-
-    history_text = "\n".join(
-        [
-            f"{role}: {msg}"
-            for role, msg in recent_history
+        user_messages = [
+            msg for role, msg in history
             if role == "user"
         ]
-    )
 
-    prompt = f"""
-You are an assistant that rewrites follow-up questions.
+        if len(user_messages) < 1:
+            return query
 
-Conversation:
-{history_text}
+        previous_question = user_messages[-1]
 
-Current Question:
+        if len(query.split()) > 6:
+            return query
+
+        prompt = f"""
+You rewrite follow-up questions into complete questions.
+
+Previous user question:
+{previous_question}
+
+Current user question:
 {query}
 
-Rewrite the question so it is fully self-contained.
+If the current question depends on the previous one,
+rewrite it into a fully self-contained question.
 
-Only return the rewritten question.
+Resolve pronouns like:
+
+its
+it
+this
+that
+they
+those
+
+Examples:
+
+Previous: What is NEC?
+Current: Its guidelines?
+Rewrite: What are the NEC guidelines?
+
+Previous: Tell me about solar permits
+Current: Required documents?
+Rewrite: What documents are required for solar permits?
+
+If no rewrite is needed,
+return the original question.
+
+Return ONLY the rewritten question.
 Do not explain.
 """
 
-    try:
-
-        rewritten = call_llm(prompt)
+        rewritten = call_llm(prompt).strip()
 
         if rewritten:
+
+            print("Original Query:", query)
             print("Rewritten Query:", rewritten)
+
             return rewritten
 
-    except Exception:
-        pass
+    except Exception as e:
+
+        print("Rewrite error:", e)
 
     return query
 
@@ -76,13 +105,11 @@ Answer:
 
     response = call_llm(prompt).strip()
 
-    
     if not response or len(response) < 5:
 
         response = call_llm(
             f"Answer clearly and directly: {query}"
         )
-
 
     if docs:
 
@@ -108,7 +135,6 @@ Answer:
     }
 
 
-
 def handle_query(
     query,
     nec_index,
@@ -116,7 +142,6 @@ def handle_query(
     chat_history=None
 ):
 
-    
     if query.lower().strip() in ["hi", "hello", "hey"]:
 
         return {
@@ -126,18 +151,16 @@ def handle_query(
             "confidence": 1.0
         }
 
-
-
     rewritten_query = rewrite_query_with_history(
         query,
         chat_history
     )
 
+    print("Final Query Used:", rewritten_query)
+
     intent = classify_query(rewritten_query)
 
     print("Detected intent:", intent)
-
-    
 
     if intent == "general":
 
@@ -152,7 +175,6 @@ def handle_query(
             "confidence": 0.4
         }
 
-
     elif intent == "nec":
 
         docs = retrieve_docs(
@@ -165,7 +187,6 @@ def handle_query(
             docs,
             "NEC"
         )
-
 
     elif intent == "wattmonk":
 
@@ -197,7 +218,16 @@ def handle_query(
 def generate_suggestions(query):
 
     prompt = f"""
-Generate 3 short follow-up questions for:
+Generate exactly 3 short follow-up questions.
+
+Rules:
+
+- Relevant
+- Under 10 words
+- No numbering
+- No explanation
+
+Topic:
 
 {query}
 """
@@ -214,6 +244,8 @@ Generate 3 short follow-up questions for:
 
         return suggestions[:3]
 
-    except Exception:
+    except Exception as e:
+
+        print("Suggestion error:", e)
 
         return []
