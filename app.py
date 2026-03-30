@@ -16,16 +16,19 @@ st.set_page_config(
 
 st.markdown("""
 <style>
+.block-container {
+    padding-top: 1.5rem !important;
+    padding-bottom: 2rem !important;
+}
 
-/* Chat container */
+header {visibility: visible;}
+footer {visibility: hidden;}
 
 .chat-container {
     max-width: 750px;
     margin: auto;
     padding: 10px;
 }
-
-/* User message */
 
 .user-msg {
     background-color: #2f80ed;
@@ -40,11 +43,9 @@ st.markdown("""
     word-wrap: break-word;
 }
 
-/* Bot message — theme adaptive */
-
 .bot-msg {
-    background-color: var(--secondary-background-color);
-    color: var(--text-color);
+    background-color: #262626;
+    color: #eaeaea;
     padding: 10px 14px;
     border-radius: 12px;
     margin: 8px 0;
@@ -52,39 +53,19 @@ st.markdown("""
     margin-left: 10px;
     margin-right: auto;
     text-align: left;
-    border: 1px solid var(--border-color);
+    border: 1px solid #333;
     word-wrap: break-word;
 }
 
-/* Suggestion pills — adaptive */
-
 .suggestion-pill {
-    background-color: var(--secondary-background-color);
-    color: var(--text-color);
-    padding: 8px 14px;
-    border-radius: 20px;
-    text-align: center;
-    font-size: 13px;
-    border: 1px solid var(--border-color);
-    white-space: nowrap;
+    background:#1f2937;
+    padding:8px 14px;
+    border-radius:20px;
+    text-align:center;
+    font-size:13px;
+    border:1px solid #374151;
+    white-space:nowrap;
 }
-
-/* Title */
-
-.chat-title {
-    font-size: 20px;
-    font-weight: 600;
-    color: var(--text-color);
-}
-
-/* Hover */
-
-.user-msg:hover,
-.bot-msg:hover {
-    transform: scale(1.01);
-    transition: 0.2s ease;
-}
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -100,16 +81,11 @@ img_base64 = get_base64_image("assets/wattmonk.png")
 st.markdown(f"""
 <div style="text-align:center; margin-top:30px; margin-bottom:20px;">
 
-<img src="data:image/png;base64,{img_base64}"
-width="160"
-style="
-display:block;
-margin:auto;
-padding-top:10px;
-filter: drop-shadow(0px 0px 6px rgba(0,0,0,0.3));
-"/>
+<img src="data:image/png;base64,{img_base64}" width="160"
+style="display:block; margin:auto; padding-top:10px;
+filter: drop-shadow(0px 0px 8px rgba(255,200,0,0.4));"/>
 
-<div class="chat-title">
+<div style="font-size:20px; color:#eaeaea; margin-top:8px; font-weight:500;">
 Chatbot
 </div>
 
@@ -188,7 +164,7 @@ for role, message in st.session_state.chat_history:
 
             st.markdown(
                 f"""
-                <div style="font-size:12px;color:var(--text-color);margin-left:10px;">
+                <div style="font-size:12px;color:#888;margin-left:10px;">
                 Source: {source} | Confidence: {confidence}
                 </div>
                 """,
